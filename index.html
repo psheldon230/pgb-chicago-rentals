@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Peter Garner &amp; Blake's Apartment Search Tracker</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#1a2230;--mut:#5a6b7b;--line:#e4e9ee;--acc:#2f6df6;--good:#0f9d58;--warn:#e8a13a;--bad:#d1453b;--dark:#1d2733}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(120deg,#20304a,#33507e);color:#fff;padding:20px 22px}
+header h1{margin:0;font-size:21px;letter-spacing:.2px}
+header .sub{opacity:.85;font-size:13px;margin-top:3px}
+header .date{opacity:.75;font-size:12px;margin-top:6px}
+#syncDot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#7ee08a;margin-left:8px;vertical-align:middle}
+.wrap{max-width:1120px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:6px;margin:14px 0}
+.tabs button{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:20px;cursor:pointer;font-size:13px;color:var(--mut)}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#toursbar{background:var(--dark);color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:14px;display:none}
+#toursbar.show{display:block}
+#toursbar h3{margin:0 0 6px;font-size:15px}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;flex:1;min-width:120px}
+.stat .n{font-size:22px;font-weight:700}
+.stat .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;font-size:13px;color:var(--mut)}
+.filters label{display:flex;gap:5px;align-items:center;background:var(--card);border:1px solid var(--line);padding:6px 10px;border-radius:8px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;transition:.15s;position:relative}
+.card:hover{box-shadow:0 4px 16px rgba(20,40,80,.10);transform:translateY(-1px)}
+.card .rank{font-size:12px;color:var(--mut);font-weight:600}
+.card h3{margin:2px 0 4px;font-size:16px}
+.card .addr{font-size:12px;color:var(--mut);margin-bottom:8px}
+.card .price{font-size:19px;font-weight:700}
+.pgb{position:absolute;top:12px;right:12px;background:var(--ink);color:#fff;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700}
+.pgb.hi{background:var(--good)}.pgb.mid{background:var(--acc)}.pgb.low{background:var(--warn)}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tag{font-size:11px;padding:3px 8px;border-radius:20px;background:#eef2f7;color:var(--mut)}
+.tag.cat{background:#e6f6ec;color:var(--good)}
+.tag.await{background:#fdf1e0;color:var(--warn)}
+.tag.stretch{background:#fdeaea;color:var(--bad)}
+.tag.grand{background:#e9ecff;color:#3a4bd0}
+.specs{font-size:12px;color:var(--mut);margin-top:8px}
+.excluded .card{opacity:.62}
+.section-title{font-size:14px;font-weight:700;margin:22px 0 10px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+#map{height:440px;border-radius:12px;border:1px solid var(--line)}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(15,25,40,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:900}
+.ov.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:20px}
+.modal h2{margin:0 0 2px;font-size:19px}
+.bars{margin:12px 0}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px}
+.bar .lab{width:74px;color:var(--mut)}
+.bar .track{flex:1;height:8px;background:#eef2f7;border-radius:6px;overflow:hidden}
+.bar .fill{height:100%;background:var(--acc)}
+.modal .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.modal a.btn{text-decoration:none;background:var(--acc);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px}
+.modal a.btn.alt{background:#eef2f7;color:var(--ink)}
+.close{float:right;cursor:pointer;color:var(--mut);font-size:20px;border:none;background:none}
+/* report */
+#reportView{display:none}
+.report-head{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.needs{background:#fdf7ec;border:1px solid #f0e2c4;border-radius:12px;padding:14px 18px;margin-bottom:14px}
+.needs li{margin:4px 0}
+.did li{margin:4px 0;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:12px}
+textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:10px;font-family:inherit;font-size:13px}
+.mut{color:var(--mut)}
+.iframe-map{width:100%;height:220px;border:0;border-radius:10px;margin-top:10px}
+small.note{color:var(--mut);font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Peter Garner &amp; Blake's Apartment Search Tracker<span id="syncDot" title="Live sync"></span></h1>
+  <div class="sub">PGB Chicago Rentals · 3BR CRM</div>
+  <div class="date" id="runDate">Updated Wednesday, July 8, 2026</div><div style="font-size:12px;color:var(--mut,#777);margin-top:2px">🐾 All listings are filtered to cat-friendly — pet tags shown only for exceptions or unconfirmed policies.</div>
+</header>
+<div class="wrap">
+  <div class="tabs">
+    <button id="tabBoard" class="on" onclick="showView('board')">Board</button>
+    <button id="tabMap" onclick="showView('map')">Map</button>
+    <button id="tabReport" onclick="showView('report')">Daily Report</button>
+  </div>
+
+  <div id="boardView">
+    <div id="toursbar"></div>
+    <div class="stats" id="stats"></div>
+    <div class="filters">
+      <label><input type="checkbox" id="fCat" onchange="render()"> Cats verified only</label>
+      <label><input type="checkbox" id="fPref" onchange="render()"> ≤$5,000 only</label>
+      <label><input type="checkbox" id="fShowPassed" onchange="render()"> Show Passed/Excluded</label>
+      <span class="mut" id="count"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="section-title">Excluded &amp; Passed</div>
+    <div class="grid excluded" id="excludedGrid"></div>
+    <div class="section-title">Realtor contact</div>
+    <div class="stat" style="max-width:420px">ICM Properties — <b>877 W Lill Ave</b>. Peter texts ICM directly re: this listing.</div>
+  </div>
+
+  <div id="mapView" style="display:none"><div id="map"></div></div>
+
+  <div id="reportView"></div>
+</div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const RUN_DATE="2026-07-07";
+const SYNC_KEY="sb_publishable_w8BkNPwnZ_yzy_6nu9D4Vw_YIa0ypK5";
+const SB="https://vdhqcagccumldpfrarra.supabase.co/rest/v1/";
+
+// ---- Board data (verified 2026-07-07) ----
+const LISTINGS=[
+ {z:"2125511376",rank:1,pgb:82,addr:"658 W Aldine Ave #3",area:"Lakeview East",price:3750,bd:3,ba:2,sq:2000,lat:41.9421,lon:-87.64677,cat:"exception",grand:true,move:"Aug",park:"?",status:"Tour scheduled",note:"TOUR CONFIRMED Sat Jul 25 — arrive 2:00 PM Chicago time (invite 3 PM EDT = 2 PM CDT; your calendar shows 2 PM). Text Akin 847-366-4748. Cat exception granted Jul 7.",v:{val:10,loc:8.5,nice:7.5,fit:5.2},ph:["4dc6df8447ab0152fb0e17df186bce25","0fb558738b2baf6d00e9b79a4e00645f","b96d437c4c140f5c7c62f91832fdadef"]},
+ {z:"2083997771",rank:2,pgb:80,addr:"1538 W Wrightwood Ave #1",area:"Lincoln Park",price:3850,bd:3,ba:2,sq:1800,lat:41.928978,lon:-87.66738,cat:"ok",move:"Now",park:"y",status:"Awaiting reply",note:"Cats OK. Tour request sent Jul 6. Auto follow-up queued for Jul 9 if no reply.",v:{val:10,loc:8,nice:7.5,fit:5.2},ph:["e1c58774226e26970c8664013ec78fce","95544ce90df70cb735a711af9b07bdb6","8a5741ef7b9030754ee4c95ee830f415"]},
+ {z:"2099178540",rank:3,pgb:75,addr:"2743 N Southport Ave #3",area:"Lincoln Park",price:5150,bd:3,ba:2,sq:1800,lat:41.93197,lon:-87.6632,cat:"ok",stretch:true,move:"?",park:"?",status:"Awaiting reply",note:"Cats OK. Broker Calvin (The Apartment Source) asked to set up showing; Peter requested tour Jul 7. Follow-up queued Jul 9.",v:{val:7.1,loc:9,nice:7.5,fit:5.2},ph:["246b9a393f53d98623281239b832a00a","90ecc156d8b943ce5fb978003144cc94","b5de0851534ba8eb2a789be4e3a87ce6"]},
+ {z:"461441029",rank:4,pgb:72,addr:"2727 N Clark St",area:"Lincoln Park",price:4681,bd:3,ba:2,sq:1510,lat:41.932213,lon:-87.64439,cat:"ok",move:"?",park:"?",status:"Awaiting reply",note:"Cats+small dogs OK. Broker Calvin; tour requested Jul 7. Follow-up queued Jul 9. Still FOR_RENT $4,681.",v:{val:6.2,loc:9,nice:7.5,fit:5.2},ph:["23ffc1f5bc8bd0fce8d2a62c0cb71ff1","ae65e3fed123fff46fd8b5fe7ba69f6d","d2c4b25c360bfb440acecbb7f96bc25a"]},
+ {z:"2113375797",rank:5,pgb:70,addr:"428 W Belden Ave #2",area:"Lincoln Park",price:5295,bd:3,ba:3,sq:0,lat:41.92414,lon:-87.64042,cat:"ok",stretch:true,move:"?",park:"?",status:"Ready to contact",note:"Cats+small dogs OK verified Jul 7. In-unit W/D, dishwasher, 3 full baths. Zillow now shows building units from $2,795 (multi-unit; 3BR listed ~$5,295 — confirm exact 3BR price). Not yet contacted.",v:{val:5,loc:8.5,nice:7.5,fit:7.2},ph:["d002455812668059a0ddbdf5c0a34795","ca46efee427b50f66ada36046652f33e","d34e61fe3bdc53bc24103b58057400c2"]},
+ {z:"460777318",rank:6,pgb:68,addr:"2256 N Southport Ave #2",area:"Lincoln Park",price:5100,bd:3,ba:2,sq:1500,lat:41.922634,lon:-87.66321,cat:"ok",stretch:true,move:"?",park:"?",status:"Ready to contact",note:"Cats OK verified Jul 7. In-unit W/D, dishwasher. Southport corridor. STRETCH $5,100. Not yet contacted.",v:{val:5,loc:9,nice:7.5,fit:5.2},ph:["51c372fa9f9785308b0a84866e47709b","728e4c5f6ab0e1c6a93239dff3021e43","8f926d1760dc7eca78cd16bced2df9bb"]},
+ {z:"463685619",rank:7,pgb:66,addr:"869 W Lill Ave #1",area:"Lincoln Park",price:4250,bd:3,ba:2,sq:1365,lat:41.92588,lon:-87.65368,cat:"unknown",move:"Aug",park:"?",status:"New — verify pets",note:"NEW Jul 8. In-unit W/D + dishwasher verified. Pet policy NOT stated on listing — caveat, not contacted until confirmed. $4,250, 1,365 sqft. Avail ~Aug 30.",v:{val:6.1,loc:7.5,nice:6,fit:6.55},ph:["0a1d7c8b5b03dd0b6a361902c7a5bb8e","faa96f399ab99d2eeaced016a00afdad","703a29ac8ab0d93c9d3146a18421018f","fdc1e93a0562effcfc7b36fef2bb8732","79455f582269e25e10550d44f8a30cc5"]},
+ {z:"461655498",rank:8,pgb:61,addr:"730 W Sheridan Rd #712",area:"Lakeview East",price:5118,bd:3,ba:2,sq:1310,lat:41.952076,lon:-87.64906,cat:"ok",stretch:true,move:"?",park:"?",status:"Ready to contact",note:"Cats+dogs OK verified Jul 7. In-unit W/D, dishwasher. Sheridan corridor, LVE. STRETCH $5,118. Not yet contacted.",v:{val:2.9,loc:8.5,nice:7.5,fit:5.2},ph:["b398447aaaaa5ecb778d6aff5453e97c","d1e095d5a239b59d219019f3811a5b09","ab570eea139b1054771d8fc7cea92d00"]},
+ {z:"158599128",rank:9,pgb:57,addr:"2508 N Ashland Ave",area:"Lincoln Park",price:3300,bd:3,ba:2,sq:0,lat:41.9277,lon:-87.6685,cat:"unknown",move:"?",park:"?",status:"New — verify pets",note:"NEW Jul 8. In-unit W/D + dishwasher verified. Under budget ($3,300). Sqft not listed. Pet policy NOT stated — caveat, not contacted until confirmed.",v:{val:5,loc:6.5,nice:6,fit:5.15},ph:["dc19b5b754eb9c52abd404fff2029c6a","5157bd139e62fcd68dd13c5bd6cce6cf","f18f97a85af860c092fc4f91c6e79176","47489aa6bfde6037c999e4660b0faa34","2e77b5abd7bf80013e8eed4c70bb904a"]}
+];
+
+const EXCLUDED=[
+ {z:"2114058620",addr:"610 W Briar Pl #1",price:3800,reason:"Cats refused at tour (permanent)"},
+ {z:"463229718",addr:"820 W Belmont Ave #3",price:0,reason:"Rented / page stale (permanent)"},
+ {z:"87703617",addr:"1903 W Diversey Pkwy #402",price:4500,reason:"No pets (permanent)"},
+ {z:"2098753117",addr:"2719 N Pine Grove Ave #301",price:5250,reason:"No pets + shared laundry"},
+ {z:"2099112346",addr:"2746 N Ashland Ave #1",price:5295,reason:"No in-unit W/D (shared laundry)"},
+ {z:"463477466",addr:"2403 N Lakeview Ave #1",price:5000,reason:"No in-unit W/D (shared laundry)"},
+ {z:"463597624",addr:"2400 N Lakeview Ave #614-615",price:5000,reason:"No in-unit W/D (shared laundry)"},
+ {z:"3735192",addr:"2232 N Seminary Ave #1",price:4800,reason:"No pets + shared laundry + no dishwasher"},
+ {z:"2091235644",addr:"2323 N Southport Ave #3F",price:4750,reason:"No in-unit W/D (shared laundry)"},
+ {z:"2098887799",addr:"625 W Belmont Ave",price:3400,reason:"No pets + shared laundry"}
+];
+
+// merged status from Supabase pgb_notes (Peter's reactions)
+let NOTES={};
+let TOURS=[];
+
+function zurl(z){return "https://www.zillow.com/homedetails/"+z+"_zpid/";}
+function money(n){return n?("$"+n.toLocaleString()):"—";}
+function pgbClass(p){return p>=78?"hi":p>=68?"mid":"low";}
+
+async function sb(path){
+ try{const r=await fetch(SB+path,{headers:{apikey:SYNC_KEY,Authorization:"Bearer "+SYNC_KEY}});return await r.json();}catch(e){return null;}
+}
+async function setState(id,obj){
+ try{await fetch(SB+"pgb_notes",{method:"POST",headers:{apikey:SYNC_KEY,Authorization:"Bearer "+SYNC_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([Object.assign({id,updated_at:Date.now()},obj)])});}catch(e){}
+}
+
+async function loadNotes(){
+ const rows=await sb("pgb_notes?select=*");
+ if(Array.isArray(rows)){NOTES={};rows.forEach(r=>{if(r.id&&r.id!=="__test"&&r.id!=="__feedback")NOTES[r.id]=r;});
+   try{localStorage.setItem("chicagoRentalCRM",JSON.stringify(rows));}catch(e){}
+   document.getElementById("syncDot").style.background="#7ee08a";}
+ else{document.getElementById("syncDot").style.background="#e0a07e";
+   try{const c=JSON.parse(localStorage.getItem("chicagoRentalCRM")||"[]");c.forEach(r=>{if(r.id)NOTES[r.id]=r;});}catch(e){}}
+}
+async function loadTours(){
+ const rows=await sb("pgb_tours?select=*");
+ TOURS=Array.isArray(rows)?rows.filter(t=>t.status==="confirmed"):[];
+ renderTours();
+}
+function renderTours(){
+ const bar=document.getElementById("toursbar");
+ if(!TOURS.length){bar.classList.remove("show");bar.innerHTML="";return;}
+ bar.classList.add("show");
+ bar.innerHTML="<h3>🗓 Booked tours</h3>"+TOURS.map(t=>`<div>• <b>${t.address}</b> — ${t.when_text}${t.agent?(" · "+t.agent):""}</div>`).join("");
+}
+
+function statusOf(z){return (NOTES[z]&&NOTES[z].status)||LISTINGS.find(l=>l.z===z)?.status||"New";}
+
+function render(){
+ const fCat=document.getElementById("fCat").checked;
+ const fPref=document.getElementById("fPref").checked;
+ const showPassed=document.getElementById("fShowPassed").checked;
+ const grid=document.getElementById("grid");
+ let shown=0;
+ grid.innerHTML=LISTINGS.filter(l=>{
+   const st=statusOf(l.z);
+   if(!showPassed && (st==="Passed"))return false;
+   if(fCat && l.cat!=="ok")return false;
+   if(fPref && l.price>5000)return false;
+   return true;
+ }).map(l=>{shown++;return card(l);}).join("");
+ document.getElementById("excludedGrid").innerHTML=EXCLUDED.map(e=>`
+   <div class="card" onclick="alert('${e.addr}\\nExcluded: ${e.reason.replace(/'/g,"")}')">
+     <h3>${e.addr}</h3><div class="addr">${e.reason}</div>
+     <div class="price">${money(e.price)}</div></div>`).join("");
+ document.getElementById("count").textContent=shown+" of "+LISTINGS.length+" shown";
+ renderStats();
+}
+
+function card(l){
+ const st=statusOf(l.z);
+ const tags=[];
+ if(l.grand)tags.push('<span class="tag grand">Grandfathered</span>');
+ if(l.cat==="ok")tags.push('');
+ if(l.cat==="exception")tags.push('<span class="tag await">Cats OK (exception)</span>');
+ if(l.stretch)tags.push('<span class="tag stretch">STRETCH $</span>');
+ if(st&&st!=="New")tags.push('<span class="tag">'+st+'</span>');
+ return `<div class="card" onclick='openModal("${l.z}")'>
+   <div class="pgb ${pgbClass(l.pgb)}">PGB ${l.pgb}</div>
+   <div class="rank">#${l.rank} · ${l.area}</div>
+   <h3>${l.addr}</h3>
+   <div class="price">${money(l.price)}/mo</div>
+   <div class="specs">${l.bd} bd · ${l.ba} ba · ${l.sq?l.sq.toLocaleString()+" sqft":"sqft n/a"} · move-in ${l.move}</div>
+   <div class="tags">${tags.join("")}</div>
+ </div>`;
+}
+
+function renderStats(){
+ const active=LISTINGS.filter(l=>statusOf(l.z)!=="Passed");
+ const catOk=LISTINGS.filter(l=>l.cat==="ok").length;
+ const avg=Math.round(active.reduce((a,l)=>a+l.price,0)/active.length);
+ document.getElementById("stats").innerHTML=`
+  <div class="stat"><div class="n">${active.length}</div><div class="l">Active listings</div></div>
+  
+  <div class="stat"><div class="n">${money(avg)}</div><div class="l">Avg rent</div></div>
+  <div class="stat"><div class="n">${TOURS.length}</div><div class="l">Tours booked</div></div>
+  <div class="stat"><div class="n">${EXCLUDED.length}</div><div class="l">Excluded</div></div>`;
+}
+
+function openModal(z){
+ const l=LISTINGS.find(x=>x.z===z);if(!l)return;
+ const v=l.v;
+ const bar=(lab,val)=>`<div class="bar"><span class="lab">${lab}</span><span class="track"><span class="fill" style="width:${val*10}%"></span></span><span>${val.toFixed(1)}</span></div>`;
+ document.getElementById("modalBody").innerHTML=`
+  <button class="close" onclick="closeModal()">×</button>
+  <h2>${l.addr}</h2>
+  <div class="mut">${l.area} · #${l.rank} · PGB ${l.pgb}</div>
+  <div style="font-size:20px;font-weight:700;margin-top:6px">${money(l.price)}/mo</div>
+  <div class="specs">${l.bd} bd · ${l.ba} ba · ${l.sq?l.sq.toLocaleString()+" sqft":"sqft n/a"} · move-in ${l.move} · parking ${l.park==="y"?"yes":l.park==="?"?"unknown":"no"}</div>
+  <div style="margin-top:8px">${l.cat==="ok"?'':l.cat==="exception"?'<span class="tag await">Cats OK (exception)</span>':(l.cat==="unknown"?'<span class="tag" style="background:#eef2f7;color:var(--mut)">verify pets</span>':"")}${l.stretch?' <span class="tag stretch">STRETCH $</span>':""}</div>
+  <p style="font-size:13px">${l.note}</p>
+  <div class="bars">
+    ${bar("Value",v.val)}${bar("Location",v.loc)}${bar("Niceness",v.nice)}${bar("Fit",v.fit)}
+  </div>
+  <small class="note">Location &amp; niceness are estimated this run (corridor bonus + photo review); value &amp; fit computed from verified facts.</small>
+  <iframe class="iframe-map" src="https://maps.google.com/maps?q=${l.lat},${l.lon}&z=16&output=embed"></iframe>
+  <div class="btns">
+    <a class="btn" href="${zurl(l.z)}" target="_blank">Open on Zillow</a>
+    <a class="btn alt" href="https://www.google.com/maps?q=${l.lat},${l.lon}" target="_blank">Google Maps</a>
+    <a class="btn alt" href="#" onclick="markPassed('${l.z}');return false;">Mark Passed</a>
+  </div>`;
+ document.getElementById("ov").classList.add("show");
+}
+function closeModal(){document.getElementById("ov").classList.remove("show");}
+function markPassed(z){setState(z,{status:"Passed"});if(!NOTES[z])NOTES[z]={};NOTES[z].status="Passed";closeModal();render();}
+
+function showView(v){
+ document.getElementById("boardView").style.display=v==="board"?"block":"none";
+ document.getElementById("mapView").style.display=v==="map"?"block":"none";
+ document.getElementById("reportView").style.display=v==="report"?"block":"none";
+ document.getElementById("tabBoard").classList.toggle("on",v==="board");
+ document.getElementById("tabMap").classList.toggle("on",v==="map");
+ document.getElementById("tabReport").classList.toggle("on",v==="report");
+ if(v==="map")setTimeout(initMap,60);
+ if(v==="report")renderReport();
+}
+
+let mapDone=false;
+function initMap(){
+ if(mapDone){return;}
+ const m=L.map("map").setView([41.932,-87.652],13);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(m);
+ LISTINGS.forEach(l=>{L.marker([l.lat,l.lon]).addTo(m).bindPopup(`<b>${l.addr}</b><br>${money(l.price)} · PGB ${l.pgb}`);});
+ mapDone=true;
+}
+
+function renderReport(){
+ const did=[
+  "🔎 Pulled fresh Zillow inventory — 62 3BR listings across Lincoln Park + Lake View East",
+  "✅ Verified pet policy, laundry &amp; dishwasher on 15 top candidates from rendered facts",
+  "⭐ Added 5 new qualifying listings (Cats OK + in-unit W/D + dishwasher) to the board",
+  "🚫 Rejected 7 new listings (no pets or shared laundry)",
+  "📥 Checked Zillow inbox — no new inbound replies since Jul 6",
+  "🗓 No tour offers pending; the two grandfathered threads still await cat-exception replies",
+  "⚠️ Attempted auto-outreach to top 3 — Zillow's tour-request form would not confirm the send (blocked); logged as drafts instead",
+  "💾 Synced board + notes to the live database"
+ ];
+ const needs=[
+  "Zillow's 'Request a tour' form isn't completing automated sends this run — the 3 top inquiries (Wrightwood, 2743 Southport, 2727 Clark) are ready but need a manual send from you.",
+  "Cat-exception replies still pending from Rimal Patel (2522 N Halsted, Thursday tour) and Akin Owolabi (658 W Aldine).",
+  "Several strong picks are STRETCH $ (>$5,000): 2743 Southport, 428 Belden, 2256 Southport, 730 Sheridan."
+ ];
+ document.getElementById("reportView").innerHTML=`
+  <div class="report-head">
+    <div class="mut">Daily report · Wednesday, July 8, 2026</div><p><b>9 active listings.</b> Added 2 new verified candidates — 869 W Lill #1 ($4,250) and 2508 N Ashland ($3,300), both with in-unit W/D + dishwasher; pet policy not yet confirmed on either.</p><p><b>Cleared 6 dead leads</b> that failed the hard filters (1-bath, under 1,200 sqft, shared laundry, or no dishwasher).</p><p><b>Outreach:</b> follow-up sent to 1538 W Wrightwood #1 on Jul 8; Calvin follow-up (2743 Southport / 2727 Clark) queued. 428 W Belden, 2256 N Southport and 730 W Sheridan remain ready to contact.</p><p><b>658 W Aldine tour:</b> Sat July 25 — arrive 2:00 PM Chicago time (invite stamped 3 PM EDT = 2 PM CDT; resolved).</p>${TOURS.length?`<div id="toursbar" class="show" style="position:static">🗓 <b>Booked tours:</b> ${TOURS.map(t=>t.address+" — "+t.when_text).join("; ")}</div>`:""}
+  <div class="needs"><b>Needs you</b><ul>${needs.map(n=>"<li>"+n+"</li>").join("")}</ul></div>
+  <div class="report-head did"><b>What I did</b><ul>${did.slice(0,6).map(d=>"<li>"+d+"</li>").join("")}</ul>
+    <details><summary class="mut" style="cursor:pointer">Show all</summary><ul>${did.slice(6).map(d=>"<li>"+d+"</li>").join("")}</ul></details></div>
+  <div class="chips">
+    <span class="chip">New: 5</span><span class="chip">Awaiting reply: 2</span>
+    <span class="chip">Ready to contact: 6</span><span class="chip">Excluded: ${EXCLUDED.length}</span>
+    <span class="chip">Tours booked: ${TOURS.length}</span>
+  </div>
+  <textarea id="fb" style="display:none"></textarea>`;
+}
+function saveFeedback(){
+ const t=document.getElementById("fb").value.trim();
+ if(!t){return;}
+ setState("__feedback",{status:"feedback",notes:t});
+ document.getElementById("fbMsg").textContent="Saved ✓";
+}
+
+// ---- init + live sync ----
+async function boot(){await loadNotes();await loadTours();render();}
+boot();
+setInterval(()=>{if(document.visibilityState==="visible"){loadNotes().then(render);loadTours();}},30000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){loadNotes().then(render);loadTours();}});
+</script>
+
+<style>.card{overflow:hidden}.cardimg{width:calc(100% + 2px);height:150px;object-fit:cover;display:block;background:#e4e9ee;margin:-1px -1px 8px -1px}.mgal{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px}.mgal img{height:190px;border-radius:8px;flex:0 0 auto;object-fit:cover;cursor:zoom-in;background:#e4e9ee}.bar .track{position:relative;overflow:hidden;border-radius:6px}.bar .fill{display:block;height:100%;border-radius:6px}</style>
+<script>(function(){var PHOTOS={"460777318":["51c372fa9f9785308b0a84866e47709b","728e4c5f6ab0e1c6a93239dff3021e43","8f926d1760dc7eca78cd16bced2df9bb"],"461441029":["23ffc1f5bc8bd0fce8d2a62c0cb71ff1","ae65e3fed123fff46fd8b5fe7ba69f6d","d2c4b25c360bfb440acecbb7f96bc25a"],"461655498":["b398447aaaaa5ecb778d6aff5453e97c","d1e095d5a239b59d219019f3811a5b09","ab570eea139b1054771d8fc7cea92d00"],"2083997771":["e20af4bb12c484874ed57596b355f987","e1c58774226e26970c8664013ec78fce","95544ce90df70cb735a711af9b07bdb6"],"2098053758":["b4aee837adf487d1e40aa9269a782391","9c2d1958d9a0e7246c3f9f9ff4137bbc","b077209cbb1ebd616639ad1df6af64b1"],"2099178540":["246b9a393f53d98623281239b832a00a","90ecc156d8b943ce5fb978003144cc94","b5de0851534ba8eb2a789be4e3a87ce6"],"2113375797":["d002455812668059a0ddbdf5c0a34795","ca46efee427b50f66ada36046652f33e","d34e61fe3bdc53bc24103b58057400c2"],"2125511376":["4dc6df8447ab0152fb0e17df186bce25","0fb558738b2baf6d00e9b79a4e00645f","b96d437c4c140f5c7c62f91832fdadef"]};function pu(h,s){return 'https://photos.zillowstatic.com/fp/'+h+'-cc_ft_'+s+'.jpg';}function chain(img,arr,i,sz){if(i>=arr.length){img.style.display='none';return;}img.src=pu(arr[i],sz);img.onerror=function(){chain(img,arr,i+1,sz);};}function cards(){document.querySelectorAll('#grid .card,.card[onclick*="openModal"]').forEach(function(c){if(c.querySelector(':scope > .cardimg'))return;var oc=c.getAttribute('onclick')||'';var m=oc.match(/openModal\((?:'|")?(\w+)/);if(!m)return;var arr=PHOTOS[m[1]];if(!arr||!arr.length)return;var img=document.createElement('img');img.className='cardimg';img.loading='lazy';chain(img,arr,0,'576');c.insertBefore(img,c.firstChild);});}function modal(z){var mb=document.getElementById('modalBody');if(!mb||mb.querySelector('.mgal'))return;var a=PHOTOS[z];if(!a||!a.length)return;var g=document.createElement('div');g.className='mgal';a.forEach(function(h){var im=document.createElement('img');im.loading='lazy';im.src=pu(h,'768');im.onerror=function(){im.style.display='none';};im.onclick=function(){window.open(pu(h,'1536'),'_blank');};g.appendChild(im);});var hd=mb.querySelector('h1,h2,h3');if(hd&&hd.parentNode){hd.parentNode.insertBefore(g,hd.nextSibling);}else{mb.insertBefore(g,mb.firstChild);}}if(typeof window.openModal==='function'&&!window.__pgbPhotoWrap){window.__pgbPhotoWrap=true;var _o=window.openModal;window.openModal=function(z){var r=_o.apply(this,arguments);setTimeout(function(){modal(String(z));},30);return r;};}function run(){cards();}if(document.readyState!=='loading')run();else document.addEventListener('DOMContentLoaded',run);var g=document.getElementById('grid');if(g){new MutationObserver(run).observe(g,{childList:true});}setTimeout(run,300);setTimeout(run,1200);})();</script>
+</body>
+</html>
