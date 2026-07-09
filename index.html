@@ -72,6 +72,9 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:8
 .mut{color:var(--mut)}
 .iframe-map{width:100%;height:220px;border:0;border-radius:10px;margin-top:10px}
 small.note{color:var(--mut);font-size:11px}
+
+.card{overflow:hidden}.cardimg{width:calc(100% + 2px);height:150px;object-fit:cover;display:block;background:#e4e9ee;margin:-1px -1px 8px -1px}.mgal{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px}.mgal img{height:190px;border-radius:8px;flex:0 0 auto;object-fit:cover;cursor:zoom-in;background:#e4e9ee}.bar .track{position:relative;overflow:hidden;border-radius:6px}.bar .fill{display:block;height:100%;border-radius:6px}
+.tag.warn{background:#fef3c7;color:#92400e}
 </style>
 </head>
 <body>
@@ -217,15 +220,37 @@ function render(){
  renderStats();
 }
 
+function photoUrl(hash,size){return "https://photos.zillowstatic.com/fp/"+hash+"-cc_ft_"+size+".jpg";}
+function photoFallback(img,size){
+ const arr=(img.getAttribute("data-ph")||"").split(",").filter(Boolean);
+ const i=(parseInt(img.getAttribute("data-i"),10)||0)+1;
+ if(i>=arr.length){img.style.display="none";return;}
+ img.setAttribute("data-i",String(i));
+ img.src=photoUrl(arr[i],size);
+}
+function cardPhoto(l){
+ const ph=(l.ph||[]);
+ if(!ph.length)return "";
+ return '<img class="cardimg" loading="lazy" alt="" src="'+photoUrl(ph[0],576)+'" data-ph="'+ph.join(",")+'" data-i="0" onerror="photoFallback(this,576)">';
+}
+function galleryHTML(l){
+ const ph=(l.ph||[]);
+ if(!ph.length)return "";
+ return '<div class="mgal">'+ph.map(function(hs){
+   return '<img loading="lazy" alt="" src="'+photoUrl(hs,768)+'" onerror="this.style.display=\'none\'" onclick="window.open(\''+photoUrl(hs,1536)+'\',\'_blank\')">';
+ }).join("")+'</div>';
+}
+
 function card(l){
  const st=statusOf(l.z);
  const tags=[];
  if(l.grand)tags.push('<span class="tag grand">Grandfathered</span>');
- if(l.cat==="ok")tags.push('');
- if(l.cat==="exception")tags.push('<span class="tag await">Cats OK (exception)</span>');
- if(l.stretch)tags.push('<span class="tag stretch">STRETCH $</span>');
+ if(l.cat==="exception")tags.push('<span class="tag await">Cat exception granted</span>');
+ if(l.cat==="unknown")tags.push('<span class="tag warn">Verify pets</span>');
+ if(l.price>5000)tags.push('<span class="tag stretch">STRETCH $</span>');
  if(st&&st!=="New")tags.push('<span class="tag">'+st+'</span>');
  return `<div class="card" onclick='openModal("${l.z}")'>
+   ${cardPhoto(l)}
    <div class="pgb ${pgbClass(l.pgb)}">PGB ${l.pgb}</div>
    <div class="rank">#${l.rank} · ${l.area}</div>
    <h3>${l.addr}</h3>
@@ -250,10 +275,12 @@ function renderStats(){
 function openModal(z){
  const l=LISTINGS.find(x=>x.z===z);if(!l)return;
  const v=l.v;
+ const gal=galleryHTML(l);
  const bar=(lab,val)=>`<div class="bar"><span class="lab">${lab}</span><span class="track"><span class="fill" style="width:${val*10}%"></span></span><span>${val.toFixed(1)}</span></div>`;
  document.getElementById("modalBody").innerHTML=`
   <button class="close" onclick="closeModal()">×</button>
   <h2>${l.addr}</h2>
+  ${gal}
   <div class="mut">${l.area} · #${l.rank} · PGB ${l.pgb}</div>
   <div style="font-size:20px;font-weight:700;margin-top:6px">${money(l.price)}/mo</div>
   <div class="specs">${l.bd} bd · ${l.ba} ba · ${l.sq?l.sq.toLocaleString()+" sqft":"sqft n/a"} · move-in ${l.move} · parking ${l.park==="y"?"yes":l.park==="?"?"unknown":"no"}</div>
@@ -325,7 +352,7 @@ setInterval(()=>{if(document.visibilityState==="visible"){loadNotes().then(rende
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){loadNotes().then(render);loadTours();}});
 </script>
 
-<style>.card{overflow:hidden}.cardimg{width:calc(100% + 2px);height:150px;object-fit:cover;display:block;background:#e4e9ee;margin:-1px -1px 8px -1px}.mgal{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px}.mgal img{height:190px;border-radius:8px;flex:0 0 auto;object-fit:cover;cursor:zoom-in;background:#e4e9ee}.bar .track{position:relative;overflow:hidden;border-radius:6px}.bar .fill{display:block;height:100%;border-radius:6px}</style>
-<script>(function(){var PHOTOS=Object.fromEntries((typeof LISTINGS!=='undefined'?LISTINGS:[]).map(function(l){return [String(l.z), (l.ph||[])];}));function pu(h,s){return 'https://photos.zillowstatic.com/fp/'+h+'-cc_ft_'+s+'.jpg';}function chain(img,arr,i,sz){if(i>=arr.length){img.style.display='none';return;}img.src=pu(arr[i],sz);img.onerror=function(){chain(img,arr,i+1,sz);};}function cards(){document.querySelectorAll('#grid .card,.card[onclick*="openModal"]').forEach(function(c){if(c.querySelector(':scope > .cardimg'))return;var oc=c.getAttribute('onclick')||'';var m=oc.match(/openModal\((?:'|")?(\w+)/);if(!m)return;var arr=PHOTOS[m[1]];if(!arr||!arr.length)return;var img=document.createElement('img');img.className='cardimg';img.loading='lazy';chain(img,arr,0,'576');c.insertBefore(img,c.firstChild);});}function modal(z){var mb=document.getElementById('modalBody');if(!mb||mb.querySelector('.mgal'))return;var a=PHOTOS[z];if(!a||!a.length)return;var g=document.createElement('div');g.className='mgal';a.forEach(function(h){var im=document.createElement('img');im.loading='lazy';im.src=pu(h,'768');im.onerror=function(){im.style.display='none';};im.onclick=function(){window.open(pu(h,'1536'),'_blank');};g.appendChild(im);});var hd=mb.querySelector('h1,h2,h3');if(hd&&hd.parentNode){hd.parentNode.insertBefore(g,hd.nextSibling);}else{mb.insertBefore(g,mb.firstChild);}}if(typeof window.openModal==='function'&&!window.__pgbPhotoWrap){window.__pgbPhotoWrap=true;var _o=window.openModal;window.openModal=function(z){var r=_o.apply(this,arguments);setTimeout(function(){modal(String(z));},30);return r;};}function run(){cards();}if(document.readyState!=='loading')run();else document.addEventListener('DOMContentLoaded',run);var g=document.getElementById('grid');if(g){new MutationObserver(run).observe(g,{childList:true});}setTimeout(run,300);setTimeout(run,1200);})();</script>
+
+
 </body>
 </html>
