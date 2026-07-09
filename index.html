@@ -231,13 +231,13 @@ function photoFallback(img,size){
 function cardPhoto(l){
  const ph=(l.ph||[]);
  if(!ph.length)return "";
- return '<img class="cardimg" loading="lazy" alt="" src="'+photoUrl(ph[0],576)+'" data-ph="'+ph.join(",")+'" data-i="0" onerror="photoFallback(this,576)">';
+ return '<img class="cardimg" alt="" decoding="async" src="'+photoUrl(ph[0],576)+'" data-ph="'+ph.join(",")+'" data-i="0" onerror="photoFallback(this,576)">';
 }
 function galleryHTML(l){
  const ph=(l.ph||[]);
  if(!ph.length)return "";
  return '<div class="mgal">'+ph.map(function(hs){
-   return '<img loading="lazy" alt="" src="'+photoUrl(hs,768)+'" onerror="this.style.display=\'none\'" onclick="window.open(\''+photoUrl(hs,1536)+'\',\'_blank\')">';
+   return '<img alt="" decoding="async" src="'+photoUrl(hs,768)+'" onerror="this.style.display=\'none\'" onclick="window.open(\''+photoUrl(hs,1536)+'\',\'_blank\')">';
  }).join("")+'</div>';
 }
 
