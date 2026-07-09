@@ -78,7 +78,7 @@ small.note{color:var(--mut);font-size:11px}
 <header>
   <h1>Peter Garner &amp; Blake's Apartment Search Tracker<span id="syncDot" title="Live sync"></span></h1>
   <div class="sub">PGB Chicago Rentals · 3BR CRM</div>
-  <div class="date" id="runDate">Updated Wednesday, July 8, 2026</div><div style="font-size:12px;color:var(--mut,#777);margin-top:2px">🐾 All listings are filtered to cat-friendly — pet tags shown only for exceptions or unconfirmed policies.</div>
+  <div class="date" id="runDate">Updated Wednesday, July 8, 2026 · 8:47 PM CT</div><div style="font-size:12px;color:var(--mut,#777);margin-top:2px">🐾 All listings are filtered to cat-friendly — pet tags shown only for exceptions or unconfirmed policies.</div>
 </header>
 <div class="wrap">
   <div class="tabs">
@@ -297,7 +297,7 @@ function renderReport(){
  ];
  document.getElementById("reportView").innerHTML=`
   <div class="report-head">
-    <div class="mut">Daily report · Wednesday, July 8, 2026</div><p><b>9 active listings.</b> Added 2 new verified candidates — 869 W Lill #1 ($4,250) and 2508 N Ashland ($3,300), both with in-unit W/D + dishwasher; pet policy not yet confirmed on either.</p><p><b>Cleared 6 dead leads</b> that failed the hard filters (1-bath, under 1,200 sqft, shared laundry, or no dishwasher).</p><p><b>Outreach:</b> follow-up sent to 1538 W Wrightwood #1 on Jul 8; Calvin follow-up (2743 Southport / 2727 Clark) queued. 428 W Belden, 2256 N Southport and 730 W Sheridan remain ready to contact.</p><p><b>658 W Aldine tour:</b> Sat July 25 — arrive 2:00 PM Chicago time (invite stamped 3 PM EDT = 2 PM CDT; resolved).</p>${TOURS.length?`<div id="toursbar" class="show" style="position:static">🗓 <b>Booked tours:</b> ${TOURS.map(t=>t.address+" — "+t.when_text).join("; ")}</div>`:""}
+    <div class="mut">Daily report · Wednesday, July 8, 2026 · 8:47 PM CT</div><p><b>9 active listings.</b> Added 2 new verified candidates — 869 W Lill #1 ($4,250) and 2508 N Ashland ($3,300), both with in-unit W/D + dishwasher; pet policy not yet confirmed on either.</p><p><b>Cleared 6 dead leads</b> that failed the hard filters (1-bath, under 1,200 sqft, shared laundry, or no dishwasher).</p><p><b>Outreach:</b> follow-up sent to 1538 W Wrightwood #1 on Jul 8; Calvin follow-up (2743 Southport / 2727 Clark) queued. 428 W Belden, 2256 N Southport and 730 W Sheridan remain ready to contact.</p><p><b>658 W Aldine tour:</b> Sat July 25 — arrive 2:00 PM Chicago time (invite stamped 3 PM EDT = 2 PM CDT; resolved).</p>${TOURS.length?`<div id="toursbar" class="show" style="position:static">🗓 <b>Booked tours:</b> ${TOURS.map(t=>t.address+" — "+t.when_text).join("; ")}</div>`:""}
   <div class="needs"><b>Needs you</b><ul>${needs.map(n=>"<li>"+n+"</li>").join("")}</ul></div>
   <div class="report-head did"><b>What I did</b><ul>${did.slice(0,6).map(d=>"<li>"+d+"</li>").join("")}</ul>
     <details><summary class="mut" style="cursor:pointer">Show all</summary><ul>${did.slice(6).map(d=>"<li>"+d+"</li>").join("")}</ul></details></div>
