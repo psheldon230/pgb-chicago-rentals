@@ -134,7 +134,7 @@ const EXCLUDED=[{"z":"460777318","addr":"2256 N Southport Ave #2","reason":"Leas
 let NOTES={};
 let TOURS=[];
 
-function zurl(z){return "https://www.zillow.com/homedetails/"+z+"_zpid/";}
+function zurl(z){if(/^[0-9]+$/.test(String(z)))return "https://www.zillow.com/homedetails/"+z+"_zpid/";var l=LISTINGS.find(function(x){return String(x.z)===String(z);});var a=l?l.addr:String(z);return "https://www.zillow.com/homes/"+encodeURIComponent(a.replace(/#/g,"")+" Chicago IL")+"_rb/";}
 function money(n){return n?("$"+n.toLocaleString()):"—";}
 function pgbClass(p){return p>=78?"hi":p>=68?"mid":"low";}
 
