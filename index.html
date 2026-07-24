@@ -75,9 +75,20 @@ small.note{color:var(--mut);font-size:11px}
 
 .card{overflow:hidden}.cardimg{width:calc(100% + 2px);height:150px;object-fit:cover;display:block;background:#e4e9ee;margin:-1px -1px 8px -1px}.mgal{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px}.mgal img{height:190px;border-radius:8px;flex:0 0 auto;object-fit:cover;cursor:zoom-in;background:#e4e9ee}.bar .track{position:relative;overflow:hidden;border-radius:6px}.bar .fill{display:block;height:100%;border-radius:6px}
 .tag.warn{background:#fef3c7;color:#92400e}
+
+#gate{position:fixed;inset:0;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;z-index:100000;font-family:-apple-system,Segoe UI,Roboto,sans-serif}
+#gate.hidden{display:none}
+#gate .box{background:#1e293b;padding:28px 26px;border-radius:14px;width:min(320px,88vw);text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+#gate h2{margin:0 0 4px;font-size:20px}
+#gate p{margin:0 0 16px;font-size:13px;color:#94a3b8}
+#gate input{width:100%;padding:11px 12px;border-radius:9px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:15px;box-sizing:border-box}
+#gate button{margin-top:12px;width:100%;padding:11px;border:0;border-radius:9px;background:#2f6fed;color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+#gate .err{margin-top:10px;color:#f87171;font-size:13px;min-height:16px}
 </style>
 </head>
 <body>
+<div id="gate"><div class="box"><h2>🔒 Private</h2><p>Peter Garner &amp; Blake's Apartment Search</p><input id="gpw" type="password" placeholder="Password" autocomplete="off"><button id="ggo">Enter</button><div class="err" id="gerr"></div></div></div>
+
 <header>
   <h1>Peter Garner &amp; Blake's Apartment Search Tracker<span id="syncDot" title="Live sync"></span></h1>
   <div class="sub">PGB Chicago Rentals · 3BR CRM</div>
@@ -325,5 +336,15 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 
 
 
+
+<script>
+(function(){
+ var K='pgb_unlock_v1';var P=atob('cmV0YXJk');
+ function unlock(){var g=document.getElementById('gate');if(g)g.classList.add('hidden');}
+ function tryPw(){var v=document.getElementById('gpw').value;if(v===P){try{sessionStorage.setItem(K,'1');}catch(e){}unlock();}else{document.getElementById('gerr').textContent='Incorrect password';var i=document.getElementById('gpw');i.value='';i.focus();}}
+ function init(){var ok=false;try{ok=sessionStorage.getItem(K)==='1';}catch(e){}if(ok){unlock();return;}var b=document.getElementById('ggo');if(b)b.addEventListener('click',tryPw);var i=document.getElementById('gpw');if(i){i.addEventListener('keydown',function(e){if(e.key==='Enter')tryPw();});i.focus();}}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body>
 </html>
