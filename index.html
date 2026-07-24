@@ -149,6 +149,13 @@ async function loadNotes(){
  else{document.getElementById("syncDot").style.background="#e0a07e";
    try{const c=JSON.parse(localStorage.getItem("chicagoRentalCRM")||"[]");c.forEach(r=>{if(r.id)NOTES[r.id]=r;});}catch(e){}}
 }
+let REPORT=null;
+async function loadReport(){
+ try{const rows=await sb('pgb_reports?select=*&order=created_at.desc&limit=1');
+ if(Array.isArray(rows)&&rows[0]&&rows[0].report){REPORT=JSON.parse(rows[0].report);}}catch(e){}
+ var rv=document.getElementById('reportView');
+ if(rv&&rv.style.display==='block')rv.innerHTML=renderReport();
+}
 async function loadTours(){
  const rows=await sb("pgb_tours?select=*");
  TOURS=Array.isArray(rows)?rows.filter(t=>t.status==="confirmed"):[];
@@ -274,7 +281,7 @@ function showView(v){
  document.getElementById("tabMap").classList.toggle("on",v==="map");
  document.getElementById("tabReport").classList.toggle("on",v==="report");
  if(v==="map")setTimeout(initMap,60);
- if(v==="report")renderReport();
+ if(v==="report")document.getElementById("reportView").innerHTML=renderReport();
 }
 
 let mapDone=false;
@@ -287,9 +294,20 @@ function initMap(){
 }
 
 function renderReport(){
- const needs=["✅ You're caught up — nothing needs a decision right now.","🗓 Tour locked: Mon Jul 20, 4:30 PM CT — 2950 N Sheridan (C2). You confirmed 4:30 works."];
- const did=["🚫 Dropped 2512 N Marshfield #3 — you flagged the location; marked passed and hidden.","🗓 Confirmed your 2950 N Sheridan tour for Mon Jul 20, 4:30 PM CT.","🧹 Earlier today: pruned 638 W Drummond (3BR off-market) and re-verified the live board.","🔎 No new qualifying 3BRs beyond the board this run."];
- return '<div class="report-head"><b>Daily report</b> <span class="mut">Updated Friday, July 24, 2026 · 11:23 AM CT</span></div>'+'<div class="report-body"><p>Full refresh done. Eddie Lehman says 2531 N Southport is leased — I sent him your criteria for comparables. Boarded one strong new find: <b>2512 N Marshfield #3</b> ($3,850, in-unit laundry, cat-friendly), now your #1 at PGB 72. Board is <b>23 active</b>.</p></div>'+'<div class="needs"><b>Needs you</b><ul>'+needs.map(function(n){return '<li>'+n+'</li>';}).join('')+'</ul></div>'+'<div class="report-head did"><b>What I did</b><ul>'+did.slice(0,6).map(function(d){return '<li>'+d+'</li>';}).join('')+'</ul>'+'<details><summary class="mut" style="cursor:pointer">Show all</summary><ul>'+did.slice(6).map(function(d){return '<li>'+d+'</li>';}).join('')+'</ul></details></div>'+'<textarea id="fb" style="display:none"></textarea>';
+ var stamp=(document.getElementById('runDate')||{}).textContent||'';
+ var t='<div class="report-head"><b>\uD83D\uDDD3 Tours scheduled</b> <span class="mut">'+stamp+'</span></div><div class="report-body">';
+ if(typeof TOURS!=='undefined'&&TOURS&&TOURS.length){t+='<ul>'+TOURS.map(function(x){return '<li><b>'+x.address+'</b> \u2014 '+x.when_text+(x.agent?(' \u00b7 '+x.agent):'')+'</li>';}).join('')+'</ul>';}
+ else{t+='<p class="mut">No tours scheduled right now.</p>';}
+ t+='</div>';
+ var r='<div class="report-head"><b>Daily report</b> <span class="mut">'+stamp+'</span></div><div class="report-body">';
+ if(typeof REPORT!=='undefined'&&REPORT){
+  if(REPORT.headline)r+='<p>'+REPORT.headline+'</p>';
+  var F=[['Follow-ups',REPORT.actions],['Inbox',REPORT.inbox],['New',REPORT.newListings],['Dropped',REPORT.dropped],['Prices',REPORT.prices]];
+  var items=F.filter(function(f){return f[1];}).map(function(f){return '<li><b>'+f[0]+':</b> '+f[1]+'</li>';}).join('');
+  if(items)r+='<ul>'+items+'</ul>';
+ } else { r+='<p class="mut">Loading the latest report\u2026</p>'; }
+ r+='</div>';
+ return t+r+'<textarea id="fb" style="display:none"></textarea>';
 }
 function saveFeedback(){
  const t=document.getElementById("fb").value.trim();
@@ -299,10 +317,10 @@ function saveFeedback(){
 }
 
 // ---- init + live sync ----
-async function boot(){await loadNotes();await loadTours();render();}
+async function boot(){await loadNotes();await loadTours();loadReport();render();}
 boot();
-setInterval(()=>{if(document.visibilityState==="visible"){loadNotes().then(render);loadTours();}},30000);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){loadNotes().then(render);loadTours();}});
+setInterval(()=>{if(document.visibilityState==="visible"){loadNotes().then(render);loadTours();loadReport();}},30000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){loadNotes().then(render);loadTours();loadReport();}});
 </script>
 
 
